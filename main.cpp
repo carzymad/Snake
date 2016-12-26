@@ -19,12 +19,15 @@ void* listen_func(void*) {
 int main(int argc, char* argv[])
 {
     //system("stty -echo -icanon");
-    pthread_t thread_listen;
-    pthread_create(&thread_listen, NULL, listen_func, NULL);
+    pthread_t thread_listen, thread_socket;
     Game *a = new Game(1);
+	pthread_create(&thread_socket, NULL, Game::tcp_listen, a);
+    pthread_create(&thread_listen, NULL, listen_func, NULL);
     a->run();
     delete a;
     //system("stty echo icanon");
+	pthread_cancel(thread_listen);
+	pthread_cancel(thread_socket);
 
 	return 0;
 }

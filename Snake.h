@@ -12,6 +12,17 @@
 
 extern char buf[256];
 
+struct Tcp {
+	int fd;			// 套接字
+	sockaddr_in addr;
+	int port;
+	char ip[20];
+};
+
+struct Udp {
+	
+};
+
 struct pos {
     int x, y;
 };
@@ -33,14 +44,21 @@ private:
     Snake player2;
     bool statu[ROWS+10][COLS+10];
     bool flag;
+	bool is_net;			// 判断是否是联机状态
     struct termios term_orig, term_vi;
+	Tcp tcp;				// tcp连接信息
 
 private:
     void change_cur(int x, int y);
     void create_snake();
     void create_food();
     void initial();
+	void link_server_tcp();		// 连接服务器,tcp连接
+	void break_server_tcp();	// 断开服务器连接，tcp连接
+	void link_server_udp();		// 连接服务器，udp连接
+	void break_server_udp();	// 断开服务器连接，udp连接
     void move();
+
     void Write(int bg, int font, char *str);
 
 public:
@@ -51,6 +69,10 @@ public:
     }
     ~Game();
     void run();
+	void Send(char *buf_);
+
+public:
+	static void* tcp_listen(void*); 
 };
 
 #endif

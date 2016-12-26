@@ -24,10 +24,16 @@ void Game::create_snake() {
     write(1, "@", 1);
 }
 void Game::create_food() {
+	char recv_buf[256] = {0};
     int x, y;
     do {
-        x = rand() % ROWS + 1;
-        y = rand() % COLS + 1;
+		Send("create_food");
+		read(tcp.fd, recv_buf, sizeof(recv_buf));
+		sscanf(recv_buf, "%d %d", x, y);
+		x = x % ROWS + 1;
+		y = y % COLS + 1;
+        //x = rand() % ROWS + 1;
+        //y = rand() % COLS + 1;
     } while (statu[x][y]);
     food.x = x;
     food.y = y;
@@ -49,6 +55,7 @@ void Game::initial() {
     direct = 0;
     write(1, "\033[?25l", strlen("\033[?251"));    // 隐藏光标
     srand(time(0));
+	link_server_tcp();
     create_snake();
     create_food();
     for (int i = 0; i <= ROWS+1; i++) {
@@ -130,17 +137,65 @@ void Game::run() {
         else if (op == 'd' || op == 'D') op = 4;
         else op = 0;
         int ret = op ^ direct;
-        sprintf(s, "分数:%d", player.length);
+        sprintf(s, "分数:%d %d", player.length, tcp.fd);
         write(1, s, strlen(s));
         if (direct == 0 || (ret != 7 && ret != 3)) {
             direct = op;
         }
         move();
     } while (flag);
+	Send("fuck you!");
 }
 
 void Game::Write(int bg, int font, char *str) {
     char buf_[256] = {0};
     sprintf(buf_, "\033[%d;%dm%s\033[0m", bg, font, str);
     write(1, buf_, strlen(buf_));
+}
+// 连接服务器
+void Game::link_server_tcp() {
+	int on = 1;
+
+	tcp.fd = socket(AF_INET, SOCK_STREAM, 0);
+	setsockopt(tcp.fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+	tcp.addr.sin_family = AF_INET;
+	tcp.addr.sin_port = htons(8081);
+	tcp.addr.sin_addr.s_addr = inet_addr("115.159.154.139");
+
+	if (connect(tcp.fd, (struct sockaddr*)&tcp.addr, sizeof(tcp.addr)) == -1) {
+		change_cur(40, 1);
+		char buf_[256] = {0};
+		sprintf(buf_, "connect error: %s", errno);
+		write(1, buf_, strlen(buf_));
+	}
+//	write(tcp.fd, "hello world!", strlen("hello world!"));
+//	write(tcp.fd, "crazy_mad!", strlen("crazy_mad!"));
+	Send("hello world");
+}
+
+void Game::break_server_tcp() {
+	close(tcp.fd);
+}
+
+void Game::link_server_udp() {
+
+}
+
+void Game::break_server_udp() {
+
+}
+
+void* Game::tcp_listen(void* obj) {
+	Game *pa = (Game*)obj;
+	char buf_[256] = "heart";
+	while (1) {
+		usleep(100000);
+		pa->Send(buf_);
+	}
+
+	return NULL;
+}
+
+void Game::Send(char *buf_) {
+	send(tcp.fd, buf_, strlen(buf_)+1, 0);
 }
